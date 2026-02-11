@@ -1,26 +1,782 @@
 @import "tailwindcss";
 @import "@repo/tailwind-config";
 
+/* ============================================
+   ALGO TRADING PLATFORM THEME
+   Clean, professional trading terminal aesthetic
+   ============================================ */
+
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  /* Hybrid Dark mode - Modern polish with dark aesthetic */
+  --background: 240 20% 4%;           /* #0d0d12 - very dark with subtle blue tint */
+  --foreground: 240 5% 96%;           /* #f4f4f5 - zinc-100 */
+
+  /* Card/Panel colors */
+  --card: 240 15% 9%;                 /* #16161e - elevated panels */
+  --card-foreground: 240 5% 96%;
+  --card-elevated: 240 15% 12%;       /* For dropdowns/overlays */
+
+  /* Muted colors */
+  --muted: 240 15% 14%;               /* #262632 */
+  --muted-foreground: 240 5% 64%;     /* #a1a1aa - zinc-400 */
+
+  /* Border - softer with opacity for Hybrid style */
+  --border: 240 6% 20%;               /* zinc-800/50 equivalent */
+  --input: 240 4% 16%;                /* zinc-900/50 - darker input bg */
+
+  /* Surface elevation layers */
+  --surface-1: 240 15% 11%;           /* #1e1e28 */
+  --surface-2: 240 15% 14%;           /* #262632 */
+  --surface-3: 240 15% 17%;           /* #2e2e3c */
+  --surface-elevated: 240 15% 14%;
+  --surface-overlay: 240 15% 17%;
+
+  /* Grid background */
+  --grid-bg: 0 0% 0%;                 /* black for dark mode */
+
+  /* Grid lines */
+  --grid-line: 240 10% 25%;           /* subtle lines for dark mode */
+
+  /* Row highlighting */
+  --row-hover: 240 15% 17%;
+  --row-twitter: 200 70% 12%;
+  --row-rss: 25 70% 12%;
+  --row-news: 240 40% 15%;
+
+  /* Primary (indigo - Hybrid accent color) */
+  --primary: 239 84% 67%;             /* #6366f1 - indigo-600 */
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary */
+  --secondary: 240 10% 16%;
+  --secondary-foreground: 240 5% 96%;
+
+  /* Accent (amber for highlights) */
+  --accent: 38 92% 50%;
+  --accent-foreground: 0 0% 0%;
+
+  /* Destructive */
+  --destructive: 0 72% 51%;           /* #ef4444 - red-600 */
+  --destructive-foreground: 0 0% 100%;
+
+  /* Trading colors - Hybrid style */
+  --bullish: 160 84% 39%;             /* #10b981 - emerald-600 */
+  --bearish: 0 72% 51%;               /* #dc2626 - red-600 */
+
+  /* Ring focus - indigo */
+  --ring: 239 84% 67%;
+
+  /* Radius - medium rounding for Hybrid */
+  --radius: 0.375rem;                 /* rounded-md */
+
+  /* Popover - for selects and dropdowns */
+  --popover: 240 15% 9%;
+  --popover-foreground: 240 5% 96%;
+
+  /* Status colors */
+  --status-accelerating: 142 71% 45%;
+  --status-stable: 217 91% 60%;
+  --status-fading: 0 84% 60%;
+
+  /* Score/heat colors */
+  --heat-high: 0 84% 60%;
+  --heat-medium: 38 92% 50%;
+  --heat-low: 142 71% 45%;
+
+  /* Tile type colors - for instant visual identification */
+  --tile-flow: 142 71% 45%;      /* Green - active feed */
+  --tile-heat: 38 92% 50%;       /* Amber - heat/urgency */
+  --tile-ticker: 217 91% 60%;    /* Blue - stock data */
+  --tile-theme: 270 91% 65%;     /* Purple - thematic */
+  --tile-alerts: 0 84% 60%;      /* Red - warnings */
+  --tile-sources: 187 100% 42%;  /* Cyan - informational */
+  --tile-settings: 0 0% 50%;     /* Gray - settings */
+  --tile-notes: 45 93% 47%;      /* Gold - personal notes */
+
+  /* Symbol link group colors */
+  --link-red: 0 84% 60%;
+  --link-green: 142 71% 45%;
+  --link-blue: 217 91% 60%;
+  --link-yellow: 48 96% 53%;
+  --link-none: 0 0% 40%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+/* Modern Bloomberg-style theme */
+[data-theme="modern"] {
+  --background: 222 47% 7%;
+  --foreground: 210 40% 98%;
+
+  --muted: 217 33% 20%;
+  --muted-foreground: 215 20% 55%;
+
+  --card: 222 47% 12%;
+  --card-foreground: 210 40% 98%;
+
+  --border: 217 33% 25%;
+  --input: 217 33% 25%;
+
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 8%;
+
+  --secondary: 217 33% 18%;
+  --secondary-foreground: 210 40% 98%;
+
+  --accent: 38 92% 50%;
+  --accent-foreground: 222 47% 8%;
+
+  --ring: 217 91% 60%;
+}
+
+/* Light mode theme - Algo platform inspired */
+.light {
+  --background: 0 0% 98%;             /* #fafafa */
+  --foreground: 240 10% 9%;           /* #18181b */
+
+  --card: 0 0% 100%;                  /* white */
+  --card-foreground: 240 10% 9%;
+  --card-elevated: 0 0% 98%;
+
+  --muted: 240 5% 96%;                /* #f5f5f5 */
+  --muted-foreground: 240 4% 46%;     /* #71717a */
+
+  --border: 240 6% 90%;               /* #e5e5e5 */
+  --input: 240 6% 90%;
+
+  /* Surface layers */
+  --surface-1: 0 0% 96%;              /* #f5f5f5 */
+  --surface-2: 0 0% 92%;              /* #ebebeb */
+  --surface-3: 0 0% 88%;              /* #e0e0e0 */
+  --surface-elevated: 0 0% 100%;
+  --surface-overlay: 0 0% 100%;
+
+  /* Grid background */
+  --grid-bg: 0 0% 100%;               /* white for light mode */
+
+  /* Grid lines */
+  --grid-line: 0 0% 85%;              /* dark gray lines for light mode */
+
+  --row-hover: 240 5% 96%;
+  --row-twitter: 200 100% 97%;
+  --row-rss: 25 100% 97%;
+  --row-news: 240 40% 97%;
+
+  /* Primary (indigo - matching dark mode) */
+  --primary: 239 84% 67%;             /* #6366f1 */
+  --primary-foreground: 0 0% 98%;
+
+  --secondary: 240 5% 96%;
+  --secondary-foreground: 240 10% 9%;
+
+  --accent: 38 92% 50%;
+  --accent-foreground: 0 0% 0%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Trading colors */
+  --bullish: 142 71% 45%;
+  --bearish: 0 84% 60%;
+
+  --ring: 239 84% 67%;
+
+  --status-accelerating: 142 71% 40%;
+  --status-stable: 217 91% 55%;
+  --status-fading: 0 84% 55%;
+
+  --heat-high: 0 84% 55%;
+  --heat-medium: 38 92% 45%;
+  --heat-low: 142 71% 40%;
+
+  --tile-flow: 142 71% 40%;
+  --tile-heat: 38 92% 45%;
+  --tile-ticker: 217 91% 55%;
+  --tile-theme: 270 91% 60%;
+  --tile-alerts: 0 84% 55%;
+  --tile-sources: 187 100% 40%;
+  --tile-settings: 0 0% 50%;
+  --tile-notes: 45 93% 45%;
+
+  --link-red: 0 84% 55%;
+  --link-green: 142 71% 40%;
+  --link-blue: 217 91% 55%;
+  --link-yellow: 48 96% 50%;
+  --link-none: 0 0% 55%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  color-scheme: dark;
+}
+
+html.light {
+  color-scheme: light;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Monospace for data and numbers */
+.font-mono,
+.tabular-nums,
+[data-display="numeric"] {
+  font-family: var(--font-mono), ui-monospace, monospace;
+}
+
+/* Slim scrollbar - 6px like algo platform */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Light mode scrollbar */
+.light ::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+}
+
+.light ::-webkit-scrollbar-thumb:hover {
+  background: hsl(240 4% 46%);
+}
+
+/* Selection styling */
+::selection {
+  background-color: hsl(var(--primary) / 0.4);
+  color: hsl(var(--foreground));
+}
+
+/* Focus visible styling - subtle, non-blue */
+:focus-visible {
+  outline: none;
+}
+
+/* Only show subtle focus ring on interactive elements when needed */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible {
+  outline: 1px solid hsl(var(--muted-foreground) / 0.3);
+  outline-offset: 1px;
+}
+
+/* Remove all focus rings from inputs - rely on border changes */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Utility classes */
+.font-mono {
+  font-feature-settings: "calt" 0;
+}
+
+/* ============================================
+   SHADOW UTILITIES - STRONG ENOUGH TO SEE
+   ============================================ */
+
+/* Panels/tiles - visible floating effect */
+.shadow-panel {
+  box-shadow:
+    0 0 0 1px hsl(220 20% 20% / 0.5),
+    0 4px 12px hsl(0 0% 0% / 0.6),
+    0 8px 24px hsl(0 0% 0% / 0.4);
+}
+
+/* Elevated state - focused tiles, important elements */
+.shadow-elevated {
+  box-shadow:
+    0 0 0 1px hsl(220 20% 25% / 0.6),
+    0 8px 24px hsl(0 0% 0% / 0.7),
+    0 16px 48px hsl(0 0% 0% / 0.5);
+}
+
+/* Dropdowns, popovers */
+.shadow-dropdown {
+  box-shadow:
+    0 0 0 1px hsl(220 20% 30% / 0.8),
+    0 12px 36px hsl(0 0% 0% / 0.8),
+    0 24px 64px hsl(0 0% 0% / 0.6);
+}
+
+/* Full overlays/modals */
+.shadow-overlay {
+  box-shadow:
+    0 0 0 1px hsl(220 20% 25% / 0.5),
+    0 24px 48px hsl(0 0% 0% / 0.8),
+    0 48px 96px hsl(0 0% 0% / 0.6);
+}
+
+/* Soft for subtle elements */
+.shadow-soft {
+  box-shadow:
+    0 2px 8px hsl(0 0% 0% / 0.4),
+    0 4px 16px hsl(0 0% 0% / 0.3);
+}
+
+/* Light mode shadows - softer, lighter */
+.light .shadow-panel {
+  box-shadow:
+    0 0 0 1px hsl(214 32% 91%),
+    0 4px 12px hsl(0 0% 0% / 0.1),
+    0 8px 24px hsl(0 0% 0% / 0.05);
+}
+
+.light .shadow-elevated {
+  box-shadow:
+    0 0 0 1px hsl(214 32% 91%),
+    0 8px 24px hsl(0 0% 0% / 0.15),
+    0 16px 48px hsl(0 0% 0% / 0.1);
+}
+
+.light .shadow-dropdown {
+  box-shadow:
+    0 0 0 1px hsl(214 32% 91%),
+    0 12px 36px hsl(0 0% 0% / 0.15),
+    0 24px 64px hsl(0 0% 0% / 0.1);
+}
+
+.light .shadow-overlay {
+  box-shadow:
+    0 0 0 1px hsl(214 32% 91%),
+    0 24px 48px hsl(0 0% 0% / 0.15),
+    0 48px 96px hsl(0 0% 0% / 0.1);
+}
+
+.light .shadow-soft {
+  box-shadow:
+    0 2px 8px hsl(0 0% 0% / 0.08),
+    0 4px 16px hsl(0 0% 0% / 0.05);
+}
+
+/* ============================================
+   BUTTON INTERACTIVE STATES - NOTICEABLE
+   ============================================ */
+
+.btn-interactive {
+  transition: all 0.15s ease;
+  transform: translateY(0);
+}
+
+.btn-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px hsl(var(--primary) / 0.4);
+}
+
+.btn-interactive:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
+}
+
+/* Icon buttons with scale */
+.btn-icon-interactive {
+  transition: all 0.1s ease;
+}
+
+.btn-icon-interactive:hover {
+  background: hsl(var(--muted) / 0.8);
+  transform: scale(1.1);
+}
+
+.btn-icon-interactive:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
+   ROW HOVER STATES - CLEARLY VISIBLE
+   ============================================ */
+
+.row-hover:hover {
+  background: hsl(var(--row-hover));
+}
+
+.row-twitter {
+  background: hsl(var(--row-twitter));
+}
+
+.row-twitter:hover {
+  background: hsl(200 70% 15%);
+}
+
+.row-rss {
+  background: hsl(var(--row-rss));
+}
+
+.row-rss:hover {
+  background: hsl(25 70% 15%);
+}
+
+.row-news {
+  background: hsl(var(--row-news));
+}
+
+.row-news:hover {
+  background: hsl(220 50% 18%);
+}
+
+/* Light mode row hover states */
+.light .row-twitter:hover {
+  background: hsl(200 100% 95%);
+}
+
+.light .row-rss:hover {
+  background: hsl(25 100% 95%);
+}
+
+.light .row-news:hover {
+  background: hsl(220 40% 95%);
+}
+
+/* ============================================
+   ANIMATION UTILITIES
+   ============================================ */
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Dialog/overlay animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes zoomOut {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Radix dialog animation utilities */
+[data-state="open"].animate-overlay-in {
+  animation: fadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-state="closed"].animate-overlay-out {
+  animation: fadeOut 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-state="open"].animate-content-in {
+  animation: zoomIn 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-state="closed"].animate-content-out {
+  animation: zoomOut 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-slide-up {
+  animation: slideUp 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ============================================
+   TWS-STYLE GRID LAYOUT SYSTEM
+   ============================================ */
+
+/* React-rnd container - ensure proper positioning */
+.react-draggable {
+  position: absolute !important;
+  /* Snappier transition - less smooth, more responsive */
+  transition: transform 0.08s ease-out;
+}
+
+/* Disable transition while actively dragging */
+.react-draggable-dragging {
+  transition: none !important;
+}
+
+/* Tile panel shadows */
+.react-draggable > div {
+  box-shadow:
+    0 2px 8px hsl(0 0% 0% / 0.4),
+    0 4px 16px hsl(0 0% 0% / 0.3);
+}
+
+/* Focused tile gets stronger shadow */
+.react-draggable > div:has(.ring-2) {
+  box-shadow:
+    0 4px 12px hsl(0 0% 0% / 0.5),
+    0 8px 24px hsl(0 0% 0% / 0.4);
+}
+
+/* Resize handles - make them visible on hover */
+.react-resizable-handle {
+  position: absolute;
+  z-index: 20;
+}
+
+/* Edge resize handles */
+.react-resizable-handle-n,
+.react-resizable-handle-s {
+  left: 10px;
+  right: 10px;
+  height: 8px;
+}
+
+.react-resizable-handle-n {
+  top: -4px;
+  cursor: ns-resize;
+}
+
+.react-resizable-handle-s {
+  bottom: -4px;
+  cursor: ns-resize;
+}
+
+.react-resizable-handle-e,
+.react-resizable-handle-w {
+  top: 10px;
+  bottom: 10px;
+  width: 8px;
+}
+
+.react-resizable-handle-e {
+  right: -4px;
+  cursor: ew-resize;
+}
+
+.react-resizable-handle-w {
+  left: -4px;
+  cursor: ew-resize;
+}
+
+/* Corner resize handles */
+.react-resizable-handle-nw,
+.react-resizable-handle-ne,
+.react-resizable-handle-sw,
+.react-resizable-handle-se {
+  width: 12px;
+  height: 12px;
+}
+
+.react-resizable-handle-nw {
+  top: -6px;
+  left: -6px;
+  cursor: nwse-resize;
+}
+
+.react-resizable-handle-ne {
+  top: -6px;
+  right: -6px;
+  cursor: nesw-resize;
+}
+
+.react-resizable-handle-sw {
+  bottom: -6px;
+  left: -6px;
+  cursor: nesw-resize;
+}
+
+.react-resizable-handle-se {
+  bottom: -6px;
+  right: -6px;
+  cursor: nwse-resize;
+}
+
+/* Show resize handles on hover (when not locked) */
+.react-draggable:hover .react-resizable-handle {
+  background: hsl(var(--primary) / 0.3);
+  border-radius: 2px;
+}
+
+.react-draggable .react-resizable-handle:hover {
+  background: hsl(var(--primary) / 0.6);
+}
+
+/* Corner handle visual indicator */
+.react-resizable-handle-se::after {
+  content: '';
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid hsl(var(--foreground) / 0.4);
+  border-bottom: 2px solid hsl(var(--foreground) / 0.4);
+}
+
+.react-draggable:hover .react-resizable-handle-se::after {
+  border-color: hsl(var(--primary) / 0.8);
+}
+
+/* ============================================
+   TYPOGRAPHY & UTILITY CLASSES
+   ============================================ */
+
+/* Terminal panel styling */
+.terminal-panel {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0;
+}
+
+.terminal-panel-header {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / 0.3);
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Tabular numbers for data display */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Compact text for dense data */
+.text-compact {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Trading colors utilities */
+.text-bullish {
+  color: hsl(var(--bullish));
+}
+
+.text-bearish {
+  color: hsl(var(--bearish));
+}
+
+.bg-bullish {
+  background: hsl(var(--bullish) / 0.2);
+}
+
+.bg-bearish {
+  background: hsl(var(--bearish) / 0.2);
+}
+
+/* ============================================
+   CMDK (Command Bar) Fixes
+   ============================================ */
+
+/* Remove default blue focus ring from cmdk input */
+[cmdk-input] {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+[cmdk-input]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+[cmdk-input]::placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Ensure cmdk items have proper text color */
+[cmdk-item] {
+  color: hsl(var(--foreground));
+}
+
+[cmdk-group-heading] {
+  color: hsl(var(--muted-foreground));
+}
+
+/* ============================================
+   COLLAPSIBLE PANE FIXES
+   ============================================ */
+
+/* Ensure collapsible triggers are visible */
+[data-state="open"] > .collapsible-trigger,
+[data-state="closed"] > .collapsible-trigger,
+button[data-state] {
+  color: hsl(var(--foreground));
+}
+
+/* Collapsible content backgrounds */
+[data-state="open"],
+[data-state="closed"] {
+  background-color: transparent;
+}
+
+/* ============================================
+   LIGHT MODE OVERRIDES
+   ============================================ */
+
+.light {
+  color-scheme: light;
+}
+
+/* Ensure all text is visible in light mode */
+.light .text-foreground,
+.light [class*="text-foreground"] {
+  color: hsl(var(--foreground)) !important;
+}
+
+/* Dropdown menus in light mode */
+.light [role="menu"],
+.light [role="listbox"] {
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
 }
