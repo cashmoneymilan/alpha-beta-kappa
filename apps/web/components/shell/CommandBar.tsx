@@ -12,6 +12,7 @@ import {
   ShoppingCart,
   Briefcase,
   Trophy,
+  Bot,
 } from "lucide-react";
 import { useWorkspaceStore, tileColors } from "@/stores/workspace";
 import type { TileType } from "@/stores/workspace";
@@ -83,6 +84,15 @@ const commands: {
     icon: StickyNote,
     action: "NOTES",
     description: "Trading notes",
+  },
+  // AI Agent
+  {
+    id: "moltbot",
+    label: "MOLTBOT",
+    shortcut: "B",
+    icon: Bot,
+    action: "MOLTBOT",
+    description: "AI agent — chat, trade, analyze",
   },
 ];
 

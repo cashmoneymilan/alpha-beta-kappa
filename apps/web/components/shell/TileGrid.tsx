@@ -20,6 +20,7 @@ import { TickerTile } from "@/components/tiles/TickerTile";
 import { AlertsTile } from "@/components/tiles/AlertsTile";
 import { NotesTile } from "@/components/tiles/NotesTile";
 import { LeaderboardTile } from "@/components/tiles/LeaderboardTile";
+import { MoltbotTile } from "@/components/tiles/MoltbotTile";
 
 // Map tile types to components
 const tileComponents: Record<string, React.ComponentType<{ tile: Tile }>> = {
@@ -31,6 +32,7 @@ const tileComponents: Record<string, React.ComponentType<{ tile: Tile }>> = {
   LEADERBOARD: LeaderboardTile,
   ALERTS: AlertsTile,
   NOTES: NotesTile,
+  MOLTBOT: MoltbotTile,
 };
 
 // ============================================

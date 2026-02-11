@@ -13,7 +13,8 @@ export type TileType =
   | "TICKER"       // Alias for CHART - Perplexity Finance style ticker display
   | "LEADERBOARD"  // Source leaderboard
   | "ALERTS"       // Price alerts
-  | "NOTES";       // Trading notes
+  | "NOTES"        // Trading notes
+  | "MOLTBOT";     // Moltbot AI agent chat
 
 export type LinkGroup = "red" | "green" | "blue" | "yellow" | "none";
 
@@ -440,6 +441,7 @@ export const tileColors: Record<TileType, string> = {
   LEADERBOARD: "var(--tile-alerts)",
   ALERTS: "var(--tile-alerts)",
   NOTES: "var(--tile-notes)",
+  MOLTBOT: "var(--tile-sources)",
 };
 
 export const linkGroupColors: Record<LinkGroup, string> = {

@@ -7,3 +7,4 @@ export { OrderConfirmModal } from "./OrderConfirmModal";
 export { PortfolioTile } from "./PortfolioTile";
 export { TickerTile } from "./TickerTile";
 export { TradeTile } from "./TradeTile";
+export { MoltbotTile } from "./MoltbotTile";
