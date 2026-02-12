@@ -71,16 +71,17 @@ export const useMoltbotStore = create<MoltbotState>()(
             const state = get();
 
             if (payload.state === 'delta') {
+              // Gateway sends cumulative text in each delta, not incremental
               const text = payload.message?.content?.[0]?.text ?? '';
               set({
-                streamingText: state.streamingText + text,
+                streamingText: text,
                 isThinking: false,
               });
               return;
             }
 
             if (payload.state === 'final') {
-              const finalText = state.streamingText + (payload.message?.content?.[0]?.text ?? '');
+              const finalText = payload.message?.content?.[0]?.text ?? state.streamingText;
               const assistantMsg: ChatMessage = {
                 id: crypto.randomUUID(),
                 role: 'assistant',
