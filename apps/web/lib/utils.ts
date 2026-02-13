@@ -24,8 +24,6 @@ const assetCategories: Record<string, AssetFocus> = {
   NVDA: "equities", AMD: "equities", AVGO: "equities", AAPL: "equities",
   SPY: "equities", QQQ: "equities", MP: "equities", CCJ: "equities",
   UEC: "equities", UUUU: "equities", NEM: "equities",
-  // Crypto
-  BTC: "crypto", ETH: "crypto", SOL: "crypto",
   // Macro
   TLT: "macro",
   // Metals

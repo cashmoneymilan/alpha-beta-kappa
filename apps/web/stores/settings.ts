@@ -4,7 +4,8 @@ import { persist } from "zustand/middleware";
 export type Theme = "terminal" | "modern";
 export type TimeWindow = "15m" | "1h" | "6h" | "24h" | "7d";
 export type NoiseLevel = "low" | "medium" | "high";
-export type AssetFocus = "all" | "equities" | "crypto" | "macro" | "metals";
+export type AssetFocus = "all" | "equities" | "macro" | "metals";
+export type FeedFilterMode = "all" | "positions-only" | "positions-boosted";
 
 interface SettingsState {
   // Hydration state
@@ -20,11 +21,15 @@ interface SettingsState {
   noiseLevel: NoiseLevel;
   assetFocus: AssetFocus;
   sourceSet: "all" | "my-lists" | "custom";
+  feedFilterMode: FeedFilterMode;
+  positionBoostAmount: number;
 
   setTimeWindow: (window: TimeWindow) => void;
   setNoiseLevel: (level: NoiseLevel) => void;
   setAssetFocus: (focus: AssetFocus) => void;
   setSourceSet: (set: "all" | "my-lists" | "custom") => void;
+  setFeedFilterMode: (mode: FeedFilterMode) => void;
+  setPositionBoostAmount: (amount: number) => void;
 
   // User interests (from Interest Portal)
   userSectors: string[];
@@ -69,11 +74,15 @@ export const useSettingsStore = create<SettingsState>()(
       noiseLevel: "medium",
       assetFocus: "all",
       sourceSet: "all",
+      feedFilterMode: "all",
+      positionBoostAmount: 20,
 
       setTimeWindow: (timeWindow) => set({ timeWindow }),
       setNoiseLevel: (noiseLevel) => set({ noiseLevel }),
       setAssetFocus: (assetFocus) => set({ assetFocus }),
       setSourceSet: (sourceSet) => set({ sourceSet }),
+      setFeedFilterMode: (feedFilterMode) => set({ feedFilterMode }),
+      setPositionBoostAmount: (positionBoostAmount) => set({ positionBoostAmount }),
 
       // User interests defaults
       userSectors: [],

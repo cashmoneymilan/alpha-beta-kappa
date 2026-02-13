@@ -244,6 +244,54 @@ export async function cancelOrder(
   });
 }
 
+// ===== TRANSACTIONS =====
+
+/**
+ * Get transaction/activity history across all accounts
+ * Uses the deprecated but cross-account getActivities endpoint (up to 10K transactions)
+ */
+export async function getActivities(
+  userId: string,
+  userSecret: string,
+  options?: {
+    startDate?: string;
+    endDate?: string;
+    accountId?: string;
+    type?: string;
+  }
+) {
+  const client = getClient();
+  const response = await client.transactionsAndReporting.getActivities({
+    userId,
+    userSecret,
+    startDate: options?.startDate,
+    endDate: options?.endDate,
+    accounts: options?.accountId,
+    type: options?.type,
+  });
+  return response.data;
+}
+
+// ===== CONNECTIONS =====
+
+/**
+ * Trigger a refresh/sync for a brokerage connection
+ * This forces SnapTrade to re-fetch holdings from the brokerage
+ */
+export async function refreshConnection(
+  userId: string,
+  userSecret: string,
+  authorizationId: string
+) {
+  const client = getClient();
+  const response = await client.connections.refreshBrokerageAuthorization({
+    userId,
+    userSecret,
+    authorizationId,
+  });
+  return response.data;
+}
+
 // ===== HELPER FUNCTIONS =====
 
 /**

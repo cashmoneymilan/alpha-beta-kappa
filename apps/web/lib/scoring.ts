@@ -11,6 +11,9 @@
  * - Sentiment Confidence (0-20 points): sentimentScore * 20
  * - Source Accuracy (0-15 points): historicalHitRate * 15
  *
+ * Position Boost (optional):
+ * - Position Match (0-20 points): If item mentions a ticker user holds
+ *
  * Multipliers:
  * - +15% for multi-source confirmation
  * - +10% for breaking news
@@ -26,10 +29,14 @@ export interface ScoreInput {
   tickerCount: number;       // Number of tickers mentioned
   isMultiSource?: boolean;   // Same story from multiple sources
   isBreaking?: boolean;      // Marked as breaking news
-  // New sentiment fields
+  // Sentiment fields
   sentiment?: SentimentResult | null;
   sourceHitRate?: number;    // Historical accuracy 0-1
   recentPriceChange?: number; // For contrarian bonus calculation
+  // Position-based boost
+  itemTickers?: string[];    // Tickers mentioned in this item
+  positionTickers?: string[]; // Tickers user has positions in
+  positionBoostAmount?: number; // Points to add for position match (default: 20)
 }
 
 export interface ScoreBreakdown {
@@ -40,6 +47,7 @@ export interface ScoreBreakdown {
   tickerScore: number;
   sentimentScore: number;
   sourceAccuracyScore: number;
+  positionScore: number;
   multiplier: number;
   contrarianBonus: boolean;
 }
@@ -67,6 +75,9 @@ export function calculateScoreWithBreakdown(input: ScoreInput): ScoreBreakdown {
     sentiment,
     sourceHitRate,
     recentPriceChange,
+    itemTickers = [],
+    positionTickers = [],
+    positionBoostAmount = 20,
   } = input;
 
   // 1. Base score from source weight (0-40 points)
@@ -104,15 +115,26 @@ export function calculateScoreWithBreakdown(input: ScoreInput): ScoreBreakdown {
     sourceAccuracyScore = Math.round(sourceHitRate * 15);
   }
 
-  // 7. Calculate base score (max 130 before multipliers)
-  const baseScore = weightScore + velocityScore + recencyScore + tickerScore + sentimentScore + sourceAccuracyScore;
+  // 7. Position boost score (0-20 points default)
+  // Items mentioning tickers the user holds positions in get boosted
+  let positionScore = 0;
+  if (positionTickers.length > 0 && itemTickers.length > 0) {
+    const positionSet = new Set(positionTickers.map(t => t.toUpperCase()));
+    const hasPositionTicker = itemTickers.some(t => positionSet.has(t.toUpperCase()));
+    if (hasPositionTicker) {
+      positionScore = positionBoostAmount;
+    }
+  }
 
-  // 8. Apply multipliers
+  // 8. Calculate base score (max 150 before multipliers)
+  const baseScore = weightScore + velocityScore + recencyScore + tickerScore + sentimentScore + sourceAccuracyScore + positionScore;
+
+  // 9. Apply multipliers
   let multiplier = 1.0;
   if (isMultiSource) multiplier += 0.15;  // +15% if confirmed by multiple sources
   if (isBreaking) multiplier += 0.10;     // +10% if breaking news
 
-  // 9. Contrarian bonus (+10% if sentiment opposes recent price move)
+  // 10. Contrarian bonus (+10% if sentiment opposes recent price move)
   let contrarianBonus = false;
   if (sentiment && recentPriceChange !== undefined) {
     const isContrarian =
@@ -125,7 +147,7 @@ export function calculateScoreWithBreakdown(input: ScoreInput): ScoreBreakdown {
     }
   }
 
-  // 10. Final score (capped at 100)
+  // 11. Final score (capped at 100)
   const total = Math.min(100, Math.round(baseScore * multiplier));
 
   return {
@@ -136,6 +158,7 @@ export function calculateScoreWithBreakdown(input: ScoreInput): ScoreBreakdown {
     tickerScore: Math.round(tickerScore),
     sentimentScore: Math.round(sentimentScore),
     sourceAccuracyScore: Math.round(sourceAccuracyScore),
+    positionScore: Math.round(positionScore),
     multiplier,
     contrarianBonus,
   };

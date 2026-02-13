@@ -7,8 +7,8 @@ export async function GET() {
       configured: !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
       serviceRole: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     },
-    rapidApi: {
-      configured: !!process.env.RAPIDAPI_KEY,
+    twitter: {
+      configured: !!(process.env.TWITTER_USERNAME && process.env.TWITTER_PASSWORD),
     },
     deepseek: {
       configured: !!process.env.DEEPSEEK_API_KEY,

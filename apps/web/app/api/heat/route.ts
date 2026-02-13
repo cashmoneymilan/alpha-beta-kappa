@@ -248,7 +248,6 @@ function extractTopNarrative(texts: string[]): string {
     { pattern: /fed|rate cut|interest rate|powell/i, label: 'Fed Policy' },
     { pattern: /AI|artificial intelligence|machine learning/i, label: 'AI/Tech' },
     { pattern: /china|tariff|trade war/i, label: 'China/Trade' },
-    { pattern: /bitcoin|crypto|eth/i, label: 'Crypto' },
     { pattern: /uranium|nuclear/i, label: 'Nuclear/Uranium' },
     { pattern: /rare earth|REE|mining/i, label: 'Rare Earth' },
     { pattern: /gold|silver|precious/i, label: 'Precious Metals' },

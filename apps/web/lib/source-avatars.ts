@@ -6,7 +6,7 @@
 export interface Source {
   id: string;
   name: string;
-  type: "twitter" | "rss" | "news";
+  type: "twitter" | "rss" | "news" | "reddit";
   handle?: string;
   url?: string;
   avatar_url?: string;
@@ -84,6 +84,11 @@ export function getSourceAvatarUrl(source: Source): string | null {
     return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
   }
 
+  // Reddit: use Reddit favicon
+  if (source.type === "reddit") {
+    return `https://www.google.com/s2/favicons?domain=reddit.com&sz=64`;
+  }
+
   return null;
 }
 
@@ -98,11 +103,14 @@ export function getSourceFallback(source: Source): { color: string; initials: st
 
 /**
  * Format source display name
- * Twitter: @handle, RSS/News: source name
+ * Twitter: @handle, Reddit: r/subreddit, RSS/News: source name
  */
 export function getSourceDisplayName(source: Source): string {
   if (source.type === "twitter" && source.handle) {
     return source.handle.startsWith("@") ? source.handle : `@${source.handle}`;
+  }
+  if (source.type === "reddit" && source.handle) {
+    return source.handle.startsWith("r/") ? source.handle : `r/${source.handle}`;
   }
   return source.name;
 }
@@ -114,6 +122,10 @@ export function getSourceLink(source: Source): string | null {
   if (source.type === "twitter" && source.handle) {
     const handle = source.handle.replace("@", "");
     return `https://twitter.com/${handle}`;
+  }
+  if (source.type === "reddit" && source.handle) {
+    const subreddit = source.handle.replace("r/", "");
+    return `https://reddit.com/r/${subreddit}`;
   }
   return source.url || null;
 }

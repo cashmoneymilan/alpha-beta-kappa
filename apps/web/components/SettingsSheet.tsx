@@ -70,7 +70,7 @@ interface ApiStatus {
     configured: boolean;
     serviceRole: boolean;
   };
-  rapidApi: {
+  twitter: {
     configured: boolean;
   };
   deepseek: {
@@ -786,31 +786,23 @@ function ApiStatusSection() {
             required
           />
           <StatusRow
-            name="RapidAPI (Twitter)"
-            configured={apiStatus?.rapidApi.configured ?? false}
+            name="Twitter (Direct Auth)"
+            configured={apiStatus?.twitter.configured ?? false}
           />
           <StatusRow name="DeepSeek (AI)" configured={apiStatus?.deepseek.configured ?? false} />
           <StatusRow name="Cron Secret" configured={apiStatus?.cron.configured ?? false} />
         </div>
       )}
 
-      {!apiStatus?.rapidApi.configured && (
+      {!apiStatus?.twitter.configured && (
         <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
           <p className="text-[10px] text-amber-400 mb-1.5 font-medium">Twitter Ingestion Setup</p>
           <ol className="text-[10px] text-muted-foreground space-y-1 list-decimal list-inside">
-            <li>Sign up at RapidAPI.com</li>
-            <li>Subscribe to a Twitter scraper API</li>
-            <li>Add RAPIDAPI_KEY to .env.local</li>
+            <li>Create a dedicated X/Twitter account</li>
+            <li>Add TWITTER_USERNAME to .env.local</li>
+            <li>Add TWITTER_PASSWORD to .env.local</li>
+            <li>Add TWITTER_EMAIL to .env.local</li>
           </ol>
-          <a
-            href="https://rapidapi.com/search/twitter"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[10px] text-primary hover:underline mt-2"
-          >
-            <ExternalLink className="h-2.5 w-2.5" />
-            Browse Twitter APIs on RapidAPI
-          </a>
         </div>
       )}
     </div>

@@ -32,7 +32,8 @@ import {
 } from 'lucide-react';
 import type { Tile } from '@/stores/workspace';
 import { useSettingsStore } from '@/stores/settings';
-import type { TimeWindow, AssetFocus } from '@/stores/settings';
+import type { TimeWindow, AssetFocus, FeedFilterMode } from '@/stores/settings';
+import { usePositionSymbols } from '@/lib/hooks/usePositionSymbols';
 import { cn, formatRelativeTime, isWithinTimeWindow, matchesAssetFocus } from '@/lib/utils';
 import { useRealtimeFeed } from '@/lib/hooks/useRealtimeFeed';
 import { useBookmarks } from '@/lib/hooks/useBookmarks';
@@ -52,6 +53,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { FeedItemRating } from '@/components/ui/FeedItemRating';
 
 interface MarketPulseProps {
   tile: Tile;
@@ -62,7 +64,7 @@ type MomentumState = 'accelerating' | 'stable' | 'fading';
 
 // Filter options
 const timeOptions: TimeWindow[] = ['1h', '6h', '24h', '7d'];
-const assetOptions: AssetFocus[] = ['all', 'equities', 'crypto', 'macro'];
+const assetOptions: AssetFocus[] = ['all', 'equities', 'macro'];
 
 // SWR fetcher
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -78,7 +80,7 @@ interface FlowItem {
     name: string;
     weight: number;
   };
-  sourceType: 'twitter' | 'rss' | 'news';
+  sourceType: 'twitter' | 'rss' | 'news' | 'reddit';
   tickers: string[];
   text: string;
   fullContent?: string;
@@ -267,7 +269,6 @@ function TreemapView({
   const filterLabels: Record<AssetFocus, string> = {
     all: 'All',
     equities: 'Stocks',
-    crypto: 'Crypto',
     macro: 'Macro',
     metals: 'Metals',
   };
@@ -316,7 +317,7 @@ function TreemapView({
             size="sm"
             className="bg-muted/50 p-0.5 rounded-md"
           >
-            {(['all', 'equities', 'crypto'] as AssetFocus[]).map((opt) => (
+            {(['all', 'equities', 'macro'] as AssetFocus[]).map((opt) => (
               <ToggleGroupItem key={opt} value={opt} className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
                 {filterLabels[opt]}
               </ToggleGroupItem>
@@ -446,6 +447,9 @@ function FeedView({
   setTimeWindow,
   assetFocus,
   setAssetFocus,
+  feedFilterMode,
+  setFeedFilterMode,
+  hasPositions,
   onRefresh,
   newItemsCount,
   onLoadNewItems,
@@ -464,6 +468,9 @@ function FeedView({
   setTimeWindow: (tw: TimeWindow) => void;
   assetFocus: AssetFocus;
   setAssetFocus: (af: AssetFocus) => void;
+  feedFilterMode: FeedFilterMode;
+  setFeedFilterMode: (mode: FeedFilterMode) => void;
+  hasPositions: boolean;
   onRefresh: () => void;
   newItemsCount: number;
   onLoadNewItems: () => void;
@@ -494,8 +501,20 @@ function FeedView({
             value={assetFocus}
             options={assetOptions}
             onChange={setAssetFocus}
-            labels={{ all: 'All', equities: 'Stocks', crypto: 'Crypto', macro: 'Macro', metals: 'Metals' } as Record<AssetFocus, string>}
+            labels={{ all: 'All', equities: 'Stocks', macro: 'Macro', metals: 'Metals' } as Record<AssetFocus, string>}
           />
+          {hasPositions && (
+            <Select value={feedFilterMode} onValueChange={(v) => setFeedFilterMode(v as FeedFilterMode)}>
+              <SelectTrigger className="h-6 w-[90px] text-[10px] bg-muted/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All News</SelectItem>
+                <SelectItem value="positions-only">My Positions</SelectItem>
+                <SelectItem value="positions-boosted">Boosted</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
           <span className="text-[10px] text-muted-foreground">{items.length}</span>
         </div>
         <div className="flex items-center gap-1">
@@ -685,6 +704,7 @@ function FeedView({
                   >
                     <Star className="h-3.5 w-3.5" fill={isBookmarked(item.id) ? 'currentColor' : 'none'} />
                   </Button>
+                  <FeedItemRating itemId={item.id} compact className="opacity-0 group-hover:opacity-100" />
                 </div>
                 <p className="text-sm text-foreground leading-snug line-clamp-2">{item.text}</p>
               </div>
@@ -822,6 +842,12 @@ function ItemDetailPanel({
                 <span className="text-muted-foreground">Source Weight</span>
                 <span className="font-mono">{item.source.weight}/10</span>
               </div>
+            </div>
+
+            {/* Rating section */}
+            <div className="pt-4 border-t border-border">
+              <div className="text-xs text-muted-foreground mb-2">Rate this item</div>
+              <FeedItemRating itemId={item.id} />
             </div>
           </div>
         </ScrollArea>
@@ -1152,6 +1178,12 @@ export function MarketPulse({ tile }: MarketPulseProps) {
   const assetFocus = useSettingsStore((s) => s.assetFocus);
   const setAssetFocus = useSettingsStore((s) => s.setAssetFocus);
   const userTickers = useSettingsStore((s) => s.userTickers);
+  const feedFilterMode = useSettingsStore((s) => s.feedFilterMode);
+  const setFeedFilterMode = useSettingsStore((s) => s.setFeedFilterMode);
+  const positionBoostAmount = useSettingsStore((s) => s.positionBoostAmount);
+
+  // Get position symbols for filtering
+  const positionSymbols = usePositionSymbols();
 
   // Feed data
   const {
@@ -1203,12 +1235,35 @@ export function MarketPulse({ tile }: MarketPulseProps) {
       time: new Date(item.time as string),
     }));
 
-    return rawItems.filter((item) => {
+    // Filter by time and asset focus
+    let filtered = rawItems.filter((item) => {
       if (!isWithinTimeWindow(item.time, timeWindow)) return false;
       if (!matchesAssetFocus(item.tickers, assetFocus)) return false;
       return true;
     });
-  }, [feedData, timeWindow, assetFocus]);
+
+    // Apply position-based filtering
+    if (feedFilterMode === 'positions-only' && positionSymbols.size > 0) {
+      filtered = filtered.filter((item) =>
+        item.tickers.some((t) => positionSymbols.has(t.toUpperCase()))
+      );
+    }
+
+    // Apply position-based score boosting
+    if (feedFilterMode === 'positions-boosted' && positionSymbols.size > 0) {
+      filtered = filtered.map((item) => {
+        const hasPositionTicker = item.tickers.some((t) => positionSymbols.has(t.toUpperCase()));
+        if (hasPositionTicker) {
+          return { ...item, score: Math.min(100, item.score + positionBoostAmount) };
+        }
+        return item;
+      });
+      // Re-sort by boosted score
+      filtered.sort((a, b) => b.score - a.score);
+    }
+
+    return filtered;
+  }, [feedData, timeWindow, assetFocus, feedFilterMode, positionSymbols, positionBoostAmount]);
 
   // Process ticker heat data
   const tickerHeat = useMemo(() => {
@@ -1363,6 +1418,9 @@ export function MarketPulse({ tile }: MarketPulseProps) {
           setTimeWindow={setTimeWindow}
           assetFocus={assetFocus}
           setAssetFocus={setAssetFocus}
+          feedFilterMode={feedFilterMode}
+          setFeedFilterMode={setFeedFilterMode}
+          hasPositions={positionSymbols.size > 0}
           onRefresh={() => mutateFeed()}
           newItemsCount={newItemsCount}
           onLoadNewItems={handleLoadNewItems}

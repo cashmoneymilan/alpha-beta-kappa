@@ -29,7 +29,7 @@ const RSS_SOURCES = [
     handle: "techmeme",
     name: "Techmeme",
     type: "rss",
-    url: "https://feeds.techmeme.com/techweb.xml",
+    url: "https://www.techmeme.com/feed.xml",
     weight: 6,
   },
   {

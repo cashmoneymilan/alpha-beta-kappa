@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Mail, Loader2, CheckCircle, AlertCircle, Zap } from "lucide-react";
@@ -9,6 +10,14 @@ import { cn } from "@/lib/utils";
 type AuthState = "idle" | "loading" | "success" | "error";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const [email, setEmail] = React.useState("");
   const [state, setState] = React.useState<AuthState>("idle");
   const [errorMessage, setErrorMessage] = React.useState("");

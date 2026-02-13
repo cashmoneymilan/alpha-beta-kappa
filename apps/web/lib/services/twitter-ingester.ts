@@ -3,34 +3,7 @@ import type { Database } from "@/lib/supabase/types";
 import { extractTickers, loadKnownTickers, isTickersLoaded } from "@/lib/ticker-extraction";
 import { calculateScore, calculateVelocity } from "@/lib/scoring";
 import { capturePriceSnapshots } from "./price-snapshot";
-
-// RapidAPI Twitter scraper configuration
-// You can use various Twitter scrapers on RapidAPI - adjust the endpoint as needed
-const RAPIDAPI_HOST = "twitter154.p.rapidapi.com";
-const RAPIDAPI_BASE_URL = `https://${RAPIDAPI_HOST}`;
-
-interface TwitterUser {
-  id: string;
-  username: string;
-  name: string;
-}
-
-interface TwitterTweet {
-  tweet_id: string;
-  text: string;
-  created_at: string;
-  user: TwitterUser;
-  favorite_count: number;
-  retweet_count: number;
-  reply_count: number;
-  views?: number;
-}
-
-interface RapidApiResponse {
-  results?: TwitterTweet[];
-  tweets?: TwitterTweet[];
-  data?: TwitterTweet[];
-}
+import { fetchUserTweets, isTwitterConfigured, type Tweet } from "./twitter-client";
 
 export interface IngestResult {
   success: boolean;
@@ -53,10 +26,9 @@ export async function ingestTwitterFeeds(
     errors: [],
   };
 
-  const rapidApiKey = process.env.RAPIDAPI_KEY;
-  if (!rapidApiKey) {
+  if (!isTwitterConfigured()) {
     result.success = false;
-    result.errors.push("RAPIDAPI_KEY environment variable not set");
+    result.errors.push("TWITTER_USERNAME and TWITTER_PASSWORD environment variables not set");
     return result;
   }
 
@@ -94,8 +66,7 @@ export async function ingestTwitterFeeds(
     try {
       const itemsIngested = await ingestTwitterSource(
         supabase,
-        source,
-        rapidApiKey
+        source
       );
       result.sourcesProcessed++;
       result.itemsIngested += itemsIngested;
@@ -121,41 +92,24 @@ export async function ingestTwitterFeeds(
 }
 
 /**
- * Ingest a single Twitter source
+ * Ingest a single Twitter source using direct account access
  */
 async function ingestTwitterSource(
   supabase: SupabaseClient<Database>,
-  source: Database["public"]["Tables"]["sources"]["Row"],
-  rapidApiKey: string
+  source: Database["public"]["Tables"]["sources"]["Row"]
 ): Promise<number> {
   // Remove @ from handle if present
   const username = source.handle.replace(/^@/, "");
 
-  // Fetch recent tweets using RapidAPI
-  // Note: Adjust the endpoint based on the specific RapidAPI Twitter scraper you're using
-  const response = await fetch(
-    `${RAPIDAPI_BASE_URL}/user/tweets?username=${username}&limit=20&include_replies=false`,
-    {
-      method: "GET",
-      headers: {
-        "X-RapidAPI-Key": rapidApiKey,
-        "X-RapidAPI-Host": RAPIDAPI_HOST,
-      },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-  }
-
-  const data: RapidApiResponse = await response.json();
-  const tweets = data.results || data.tweets || data.data || [];
+  // Fetch recent tweets via agent-twitter-client
+  const tweets: Tweet[] = await fetchUserTweets(username, 20);
 
   let itemsIngested = 0;
 
   for (const tweet of tweets) {
     try {
-      const externalId = tweet.tweet_id;
+      const externalId = tweet.id;
+      if (!externalId || !tweet.text) continue;
 
       // Check if we already have this tweet
       const { data: existing } = await supabase
@@ -174,14 +128,14 @@ async function ingestTwitterSource(
 
       // Calculate velocity from engagement
       const velocity = calculateVelocity({
-        likes: tweet.favorite_count || 0,
-        retweets: tweet.retweet_count || 0,
-        replies: tweet.reply_count || 0,
+        likes: tweet.likes || 0,
+        retweets: tweet.retweets || 0,
+        replies: tweet.replies || 0,
         views: tweet.views || 0,
       });
 
       // Parse publish date
-      const publishedAt = new Date(tweet.created_at);
+      const publishedAt = tweet.timeParsed ?? new Date(tweet.timestamp ? tweet.timestamp * 1000 : Date.now());
 
       // Calculate score
       const score = calculateScore({
@@ -199,8 +153,8 @@ async function ingestTwitterSource(
           source_id: source.id,
           source_type: "twitter",
           text: tweet.text,
-          full_content: tweet.text, // Tweets are short, full content = text
-          url: `https://twitter.com/${username}/status/${externalId}`,
+          full_content: tweet.text,
+          url: tweet.permanentUrl || `https://twitter.com/${username}/status/${externalId}`,
           published_at: publishedAt.toISOString(),
           velocity,
           score,
@@ -215,7 +169,7 @@ async function ingestTwitterSource(
 
       // Link tickers
       if (feedItem && extractedTickers.length > 0) {
-        const tickerLinks = extractedTickers.map((t) => ({
+        const tickerLinks = extractedTickers.map((t: any) => ({
           feed_item_id: feedItem.id,
           ticker_symbol: t.symbol,
           confidence: t.confidence,
@@ -237,7 +191,7 @@ async function ingestTwitterSource(
 
       // Capture price snapshots for alpha tracking (only for items < 15 min old)
       if (feedItem && extractedTickers.length > 0 && ageMs < 15 * 60 * 1000) {
-        const tickerSymbols = extractedTickers.map((t) => t.symbol);
+        const tickerSymbols = extractedTickers.map((t: any) => t.symbol);
         await capturePriceSnapshots(supabase, feedItem.id, tickerSymbols, tweet.text);
       }
 
