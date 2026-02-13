@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
-import { extractTickers, loadKnownTickers, isTickersLoaded } from "@/lib/ticker-extraction";
+import { extractTickersWithAutoDiscovery, loadKnownTickers, isTickersLoaded } from "@/lib/ticker-extraction";
 import { calculateScore } from "@/lib/scoring";
 import { capturePriceSnapshots } from "./price-snapshot";
 
@@ -248,8 +248,8 @@ async function ingestRedditSource(
         ? `${post.title}\n\n${post.selftext}`
         : post.title;
 
-      // Extract tickers from combined content
-      const extractedTickers = extractTickers(fullText);
+      // Extract tickers from combined content (with auto-discovery)
+      const extractedTickers = await extractTickersWithAutoDiscovery(supabase, fullText);
 
       // Calculate velocity from Reddit engagement
       const velocity = calculateRedditVelocity(post);
@@ -287,7 +287,7 @@ async function ingestRedditSource(
         continue;
       }
 
-      // Link tickers
+      // Link tickers (batch insert)
       if (feedItem && extractedTickers.length > 0) {
         const tickerLinks = extractedTickers.map((t) => ({
           feed_item_id: feedItem.id,
@@ -295,9 +295,7 @@ async function ingestRedditSource(
           confidence: t.confidence,
         }));
 
-        for (const link of tickerLinks) {
-          await supabase.from("feed_item_tickers").insert(link as any).select();
-        }
+        await supabase.from("feed_item_tickers").insert(tickerLinks as any);
       }
 
       // Add "new" flag for recent items (< 1 hour)

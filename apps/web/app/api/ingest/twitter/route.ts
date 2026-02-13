@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET /api/ingest/twitter - Triggered by Vercel cron
+// GET /api/ingest/twitter - Triggered by Vercel cron or moltbot
 export async function GET(request: NextRequest) {
   // Verify cron secret for automated calls
   const authHeader = request.headers.get("authorization");
@@ -54,7 +54,15 @@ export async function GET(request: NextRequest) {
   const supabase = createServiceClient();
 
   try {
-    const result = await ingestTwitterFeeds(supabase);
+    // Parse batch parameter from query string
+    const batchParam = request.nextUrl.searchParams.get("batch");
+    const batch = batchParam ? parseInt(batchParam, 10) : undefined;
+
+    const result = await ingestTwitterFeeds(supabase, undefined, {
+      batch: batch && !isNaN(batch) ? batch : undefined,
+      batchSize: 15,
+    });
+
     return NextResponse.json(result);
   } catch (error) {
     console.error("Twitter cron ingestion error:", error);

@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
-import { extractTickers, loadKnownTickers, isTickersLoaded } from "@/lib/ticker-extraction";
+import { extractTickersWithAutoDiscovery, loadKnownTickers, isTickersLoaded } from "@/lib/ticker-extraction";
 import { calculateScore, calculateVelocity } from "@/lib/scoring";
 import { capturePriceSnapshots } from "./price-snapshot";
 import { fetchUserTweets, isTwitterConfigured, type Tweet } from "./twitter-client";
@@ -10,14 +10,24 @@ export interface IngestResult {
   sourcesProcessed: number;
   itemsIngested: number;
   errors: string[];
+  batch?: { current: number; total: number };
+}
+
+export interface TwitterIngestOptions {
+  /** Which batch to process (1-indexed). If omitted, processes all sources. */
+  batch?: number;
+  /** How many sources per batch. Default: 15. */
+  batchSize?: number;
 }
 
 /**
- * Ingest Twitter feeds from enabled sources
+ * Ingest Twitter feeds from enabled sources.
+ * Supports batching to stay under Vercel's 60s function timeout.
  */
 export async function ingestTwitterFeeds(
   supabase: SupabaseClient<Database>,
-  sourceIds?: string[]
+  sourceIds?: string[],
+  options?: TwitterIngestOptions
 ): Promise<IngestResult> {
   const result: IngestResult = {
     success: true,
@@ -61,12 +71,36 @@ export async function ingestTwitterFeeds(
     return result;
   }
 
+  // Apply batching if requested
+  let sourcesToProcess = sources;
+  const batchSize = options?.batchSize ?? 15;
+
+  if (options?.batch) {
+    const totalBatches = Math.ceil(sources.length / batchSize);
+    const batchIndex = options.batch - 1; // Convert 1-indexed to 0-indexed
+    const start = batchIndex * batchSize;
+    const end = start + batchSize;
+    sourcesToProcess = sources.slice(start, end);
+    result.batch = { current: options.batch, total: totalBatches };
+
+    if (sourcesToProcess.length === 0) {
+      result.errors.push(`Batch ${options.batch} is empty (total batches: ${totalBatches})`);
+      return result;
+    }
+
+    console.log(`Twitter batch ${options.batch}/${totalBatches}: processing ${sourcesToProcess.length} sources`);
+  }
+
   // Process each source with rate limiting
-  for (const source of sources) {
+  for (const source of sourcesToProcess) {
     try {
+      // Reduce tweet count for low-weight sources to save time
+      const tweetLimit = source.weight >= 7 ? 20 : 10;
+
       const itemsIngested = await ingestTwitterSource(
         supabase,
-        source
+        source,
+        tweetLimit
       );
       result.sourcesProcessed++;
       result.itemsIngested += itemsIngested;
@@ -96,13 +130,14 @@ export async function ingestTwitterFeeds(
  */
 async function ingestTwitterSource(
   supabase: SupabaseClient<Database>,
-  source: Database["public"]["Tables"]["sources"]["Row"]
+  source: Database["public"]["Tables"]["sources"]["Row"],
+  tweetLimit: number = 20
 ): Promise<number> {
   // Remove @ from handle if present
   const username = source.handle.replace(/^@/, "");
 
   // Fetch recent tweets via agent-twitter-client
-  const tweets: Tweet[] = await fetchUserTweets(username, 20);
+  const tweets: Tweet[] = await fetchUserTweets(username, tweetLimit);
 
   let itemsIngested = 0;
 
@@ -123,8 +158,8 @@ async function ingestTwitterSource(
         continue; // Skip duplicates
       }
 
-      // Extract tickers
-      const extractedTickers = extractTickers(tweet.text);
+      // Extract tickers (with auto-discovery of unknown cashtags)
+      const extractedTickers = await extractTickersWithAutoDiscovery(supabase, tweet.text);
 
       // Calculate velocity from engagement
       const velocity = calculateVelocity({
@@ -167,7 +202,7 @@ async function ingestTwitterSource(
         continue;
       }
 
-      // Link tickers
+      // Link tickers (batch insert)
       if (feedItem && extractedTickers.length > 0) {
         const tickerLinks = extractedTickers.map((t: any) => ({
           feed_item_id: feedItem.id,
@@ -175,9 +210,7 @@ async function ingestTwitterSource(
           confidence: t.confidence,
         }));
 
-        for (const link of tickerLinks) {
-          await supabase.from("feed_item_tickers").insert(link as any).select();
-        }
+        await supabase.from("feed_item_tickers").insert(tickerLinks as any);
       }
 
       // Add "new" flag for recent items (< 1 hour)

@@ -1,7 +1,7 @@
 import Parser from "rss-parser";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
-import { extractTickers, loadKnownTickers, isTickersLoaded } from "@/lib/ticker-extraction";
+import { extractTickersWithAutoDiscovery, loadKnownTickers, isTickersLoaded } from "@/lib/ticker-extraction";
 import { calculateScore } from "@/lib/scoring";
 
 const parser = new Parser({
@@ -60,23 +60,35 @@ export async function ingestRssFeeds(
     return result;
   }
 
-  // Process each source
-  for (const source of sources) {
-    try {
-      const itemsIngested = await ingestRssSource(supabase, source);
-      result.sourcesProcessed++;
-      result.itemsIngested += itemsIngested;
+  // Process sources in parallel batches of 5
+  const CONCURRENCY = 5;
+  for (let i = 0; i < sources.length; i += CONCURRENCY) {
+    const batch = sources.slice(i, i + CONCURRENCY);
+    const batchResults = await Promise.allSettled(
+      batch.map(async (source: any) => {
+        const itemsIngested = await ingestRssSource(supabase, source);
 
-      // Update last_fetched_at
-      await (supabase
-        .from("sources") as any)
-        .update({ last_fetched_at: new Date().toISOString() })
-        .eq("id", source.id);
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      result.errors.push(`${source.name}: ${errorMessage}`);
-      console.error(`Failed to ingest ${source.name}:`, error);
+        // Update last_fetched_at
+        await (supabase
+          .from("sources") as any)
+          .update({ last_fetched_at: new Date().toISOString() })
+          .eq("id", source.id);
+
+        return { source, itemsIngested };
+      })
+    );
+
+    for (const batchResult of batchResults) {
+      if (batchResult.status === "fulfilled") {
+        result.sourcesProcessed++;
+        result.itemsIngested += batchResult.value.itemsIngested;
+      } else {
+        const errorMessage = batchResult.reason instanceof Error
+          ? batchResult.reason.message
+          : "Unknown error";
+        result.errors.push(errorMessage);
+        console.error("Failed to ingest RSS source:", batchResult.reason);
+      }
     }
   }
 
@@ -120,9 +132,9 @@ async function ingestRssSource(
       const text = item.title || "";
       const fullContent = item.contentSnippet || item.content || item.summary || "";
 
-      // Extract tickers from title and content
+      // Extract tickers from title and content (with auto-discovery)
       const combinedText = `${text} ${fullContent}`;
-      const extractedTickers = extractTickers(combinedText);
+      const extractedTickers = await extractTickersWithAutoDiscovery(supabase, combinedText);
 
       // Calculate score
       const publishedAt = item.pubDate
@@ -158,7 +170,7 @@ async function ingestRssSource(
         continue;
       }
 
-      // Link tickers
+      // Link tickers (batch insert)
       if (feedItem && extractedTickers.length > 0) {
         const tickerLinks = extractedTickers.map((t) => ({
           feed_item_id: feedItem.id,
@@ -166,10 +178,7 @@ async function ingestRssSource(
           confidence: t.confidence,
         }));
 
-        // Insert ticker links, ignoring failures (ticker might not exist)
-        for (const link of tickerLinks) {
-          await supabase.from("feed_item_tickers").insert(link as any).select();
-        }
+        await supabase.from("feed_item_tickers").insert(tickerLinks as any);
       }
 
       // Add "new" flag for recent items (< 1 hour)

@@ -16,6 +16,26 @@ const FALSE_POSITIVES = new Set([
   "FED", "FOMC", "ECB", "BOJ", "PPI", "PCE", "NFP",
   "IMO", "FWIW", "TBH", "BTW", "FYI", "ICYMI", "TLDR",
   "THE", "AND", "FOR", "NOT", "BUT", "ARE", "WAS", "HAS",
+  "CEO", "CIO", "COO", "CMO", "SVP", "EVP", "VP",
+  "LLC", "INC", "LTD", "PLC", "AGM", "IPO",
+  "PT", "TP", "BUY", "SELL", "HOLD",
+  "DD", "OTM", "ITM", "ATM", "IV", "DTE", "OI",
+  "GDP", "QE", "QT", "YCC", "ZIRP",
+  "IS", "AS", "BE", "BY", "HE", "IF", "IN", "NO", "OF",
+  "OR", "SO", "TO", "UP", "WE", "DO", "GO", "HI",
+  "AN", "AT", "AH", "OK", "OH", "EM",
+]);
+
+// S&P 500 symbols that overlap with common English words.
+// These should ONLY match via $CASHTAG syntax, never bare uppercase words.
+const CASHTAG_ONLY_TICKERS = new Set([
+  "ALL", "IT", "ON", "NOW", "RE", "SO", "AN", "DO", "LOW", "KEY",
+  "MAN", "TOP", "BIG", "AIR", "SEE", "AMP", "MAS", "BEN",
+  "A", "C", "D", "F", "J", "K", "L", "O", "T", "U", "V",
+  "ARE", "MO", "PM", "IP", "IR", "GL", "ES", "CE",
+  "DD", "ED", "GE", "PH",
+  "DAY", "APP", "NET", "PATH", "BALL", "FAST", "WELL",
+  "COST", "POOL", "TEAM", "DASH", "SNAP",
 ]);
 
 /**
@@ -98,6 +118,9 @@ export function extractTickers(text: string): ExtractedTicker[] {
     // Skip false positives
     if (FALSE_POSITIVES.has(potential)) continue;
 
+    // Skip CASHTAG_ONLY tickers — these only match via $SYMBOL
+    if (CASHTAG_ONLY_TICKERS.has(potential)) continue;
+
     // Only match if it's a known ticker (no guessing for non-cashtags)
     if (TICKER_SYMBOLS.has(potential) && !found.has(potential)) {
       found.set(potential, 0.7);
@@ -124,12 +147,31 @@ export function extractTickers(text: string): ExtractedTicker[] {
  * Quick extract for when database isn't available (uses hardcoded common tickers)
  */
 const COMMON_TICKERS = new Set([
-  "NVDA", "AMD", "AVGO", "AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA",
+  // Mega-cap tech
+  "NVDA", "AMD", "AVGO", "AAPL", "MSFT", "GOOGL", "GOOG", "AMZN", "META", "TSLA",
+  "ORCL", "CRM", "ADBE", "NFLX", "INTU", "QCOM", "AMAT", "MU", "LRCX", "KLAC",
+  "SNPS", "CDNS", "CRWD", "PANW", "ANET", "MRVL", "ARM", "SMCI", "DELL", "PLTR",
+  // Indices/ETFs
   "SPY", "QQQ", "IWM", "DIA", "TLT", "HYG", "LQD",
+  "XLF", "XLK", "XLV", "XLE", "XLI", "XLU", "XLY", "XLC", "XLB", "XLP", "XLRE",
+  // Financials
+  "JPM", "BAC", "WFC", "GS", "MS", "BLK", "SCHW", "COF",
+  // Healthcare
+  "LLY", "UNH", "JNJ", "ABBV", "MRK", "PFE", "AMGN", "MRNA", "ISRG", "VRTX",
+  // Consumer/Industrial
+  "WMT", "COST", "HD", "MCD", "NKE", "SBUX", "BA", "CAT", "GE", "HON",
+  // Energy
+  "XOM", "CVX", "COP", "SLB", "OXY",
+  // Uranium
   "CCJ", "UEC", "UUUU", "DNN",
+  // Metals
   "GLD", "SLV", "NEM", "GOLD", "MP",
-  "BTC", "ETH", "SOL",
-  "XLE", "USO", "XOP",
+  // Crypto
+  "BTC", "ETH", "SOL", "DOGE", "XRP", "ADA", "AVAX", "LINK", "MATIC",
+  // Oil/Commodities
+  "USO", "XOP",
+  // Macro
+  "VIX", "DXY", "TNX",
 ]);
 
 export function extractTickersQuick(text: string): string[] {
@@ -154,4 +196,85 @@ export function extractTickersQuick(text: string): string[] {
   }
 
   return Array.from(found);
+}
+
+// Additional false positives for auto-discovery validation
+const AUTO_DISCOVER_BLACKLIST = new Set([
+  ...FALSE_POSITIVES,
+  ...CASHTAG_ONLY_TICKERS,
+  // Common short words that appear as cashtags but aren't tickers
+  "THE", "AND", "FOR", "NOT", "BUT", "ARE", "WAS", "HAS",
+  "NEW", "OLD", "BIG", "TOP", "OUT", "OFF", "RUN", "WIN",
+  "RED", "HOT", "GOT", "SET", "HIT", "CUT", "PUT", "GET",
+  "ADD", "LET", "USE", "END", "TRY", "WAY", "OWN", "DID",
+  "SAY", "MAY", "TWO", "WAR", "OIL", "GAS", "TAX",
+]);
+
+/**
+ * Auto-discover and insert an unknown ticker into the database.
+ * Only inserts symbols that look valid (2-5 uppercase, not in blacklist).
+ * Returns true if the ticker was newly inserted.
+ */
+export async function autoDiscoverTicker(
+  supabase: SupabaseClient<Database>,
+  symbol: string
+): Promise<boolean> {
+  const upper = symbol.toUpperCase();
+
+  // Validate: 2-5 uppercase alpha only
+  if (!/^[A-Z]{2,5}$/.test(upper)) return false;
+
+  // Skip known false positives
+  if (AUTO_DISCOVER_BLACKLIST.has(upper)) return false;
+
+  // Already in cache
+  if (TICKER_SYMBOLS.has(upper)) return false;
+
+  // Insert with name: null as marker for auto-discovered
+  const { error } = await supabase
+    .from("tickers")
+    .insert({ symbol: upper, name: null, asset_class: "equities", aliases: [] } as any);
+
+  if (error) {
+    // Likely duplicate (race condition) — not a problem
+    if (error.code === "23505") return false;
+    console.error(`Auto-discover failed for ${upper}:`, error.message);
+    return false;
+  }
+
+  // Add to in-memory cache
+  TICKER_SYMBOLS.add(upper);
+  KNOWN_TICKERS.set(upper, upper);
+
+  console.log(`Auto-discovered ticker: ${upper}`);
+  return true;
+}
+
+/**
+ * Extract tickers with auto-discovery — runs normal extraction, then
+ * auto-inserts any unknown cashtags that were found with 0.8 confidence.
+ */
+export async function extractTickersWithAutoDiscovery(
+  supabase: SupabaseClient<Database>,
+  text: string
+): Promise<ExtractedTicker[]> {
+  const tickers = extractTickers(text);
+
+  // Find unknown cashtags (confidence 0.8 = unknown but valid cashtag format)
+  const unknowns = tickers.filter(t => t.confidence === 0.8);
+
+  if (unknowns.length > 0) {
+    await Promise.allSettled(
+      unknowns.map(t => autoDiscoverTicker(supabase, t.symbol))
+    );
+
+    // Upgrade confidence for newly-discovered tickers
+    for (const t of tickers) {
+      if (t.confidence === 0.8 && TICKER_SYMBOLS.has(t.symbol)) {
+        t.confidence = 0.9; // Now known via auto-discovery
+      }
+    }
+  }
+
+  return tickers;
 }
