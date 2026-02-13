@@ -18,6 +18,14 @@
       "schedule": "0 9 * * *"
     },
     {
+      "path": "/api/ingest/prediction-market",
+      "schedule": "30 9 * * *"
+    },
+    {
+      "path": "/api/ingest/prediction-market?category=Crypto",
+      "schedule": "0 * * * *"
+    },
+    {
       "path": "/api/attribution",
       "schedule": "0 10 * * *"
     }

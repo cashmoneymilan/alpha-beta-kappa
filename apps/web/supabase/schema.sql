@@ -8,7 +8,7 @@ CREATE TABLE sources (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   handle TEXT NOT NULL,
   name TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('twitter', 'rss', 'news')),
+  type TEXT NOT NULL CHECK (type IN ('twitter', 'rss', 'news', 'reddit', 'prediction_market')),
   weight INTEGER NOT NULL DEFAULT 5 CHECK (weight >= 0 AND weight <= 10),
   url TEXT,
   enabled BOOLEAN NOT NULL DEFAULT true,
@@ -33,7 +33,7 @@ CREATE TABLE feed_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   external_id TEXT,
   source_id UUID REFERENCES sources(id) ON DELETE CASCADE,
-  source_type TEXT NOT NULL CHECK (source_type IN ('twitter', 'rss', 'news', 'note')),
+  source_type TEXT NOT NULL CHECK (source_type IN ('twitter', 'rss', 'news', 'note', 'reddit', 'prediction_market')),
   text TEXT NOT NULL,
   full_content TEXT,
   url TEXT,
@@ -78,7 +78,7 @@ CREATE TABLE user_notes (
 -- Ingestion logs
 CREATE TABLE ingestion_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  job_type TEXT NOT NULL CHECK (job_type IN ('twitter', 'rss', 'manual')),
+  job_type TEXT NOT NULL CHECK (job_type IN ('twitter', 'rss', 'manual', 'reddit', 'prediction_market')),
   source_id UUID REFERENCES sources(id) ON DELETE SET NULL,
   status TEXT NOT NULL CHECK (status IN ('started', 'success', 'failed')),
   items_processed INTEGER DEFAULT 0,
@@ -214,4 +214,9 @@ INSERT INTO tickers (symbol, name, asset_class, aliases) VALUES
 -- Oil/Energy
 ('XLE', 'Energy Sector ETF', 'commodities', ARRAY['energy']),
 ('USO', 'Oil ETF', 'commodities', ARRAY['oil', 'crude']),
-('XOP', 'Oil & Gas Exploration ETF', 'commodities', ARRAY['oil gas']);
+('XOP', 'Oil & Gas Exploration ETF', 'commodities', ARRAY['oil gas']),
+-- Sector ETFs (for PM signals)
+('XLF', 'Financial Sector ETF', 'equities', ARRAY['financials']),
+('XLK', 'Technology Sector ETF', 'equities', ARRAY['tech sector']),
+-- Crypto equities
+('COIN', 'Coinbase Global', 'equities', ARRAY['coinbase']);

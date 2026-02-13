@@ -99,6 +99,7 @@ export class GatewayClient {
   private intentionalClose = false;
   private _status: GatewayStatus = "disconnected";
   private reqCounter = 0;
+  private activeSessionKey = "main";
 
   constructor(url: string, token: string, events: GatewayClientEvents) {
     this.url = url;
@@ -171,11 +172,17 @@ export class GatewayClient {
 
   /** Send a chat message and return the request ACK. */
   async sendChat(message: string, sessionKey = "main"): Promise<unknown> {
+    this.activeSessionKey = sessionKey;
     return this.request("chat.send", {
       sessionKey,
       message,
       idempotencyKey: crypto.randomUUID(),
     });
+  }
+
+  /** Set the active session key for filtering incoming events. */
+  setSessionKey(key: string): void {
+    this.activeSessionKey = key;
   }
 
   /** Abort an in-progress chat response. */
@@ -257,7 +264,12 @@ export class GatewayClient {
 
     if (frame.type === "event") {
       if (frame.event === "chat") {
-        this.events.onChatEvent(frame.payload as unknown as ChatEventPayload);
+        const chatPayload = frame.payload as unknown as ChatEventPayload;
+        // Only surface events for our session — ignore Telegram/Signal/other channels
+        if (chatPayload.sessionKey && chatPayload.sessionKey !== this.activeSessionKey) {
+          return;
+        }
+        this.events.onChatEvent(chatPayload);
       }
       return;
     }
