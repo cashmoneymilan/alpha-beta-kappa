@@ -29,6 +29,8 @@ import {
   ArrowUp,
   ArrowDown,
   User,
+  Rss,
+  MessageCircle,
 } from 'lucide-react';
 import type { Tile } from '@/stores/workspace';
 import { useSettingsStore } from '@/stores/settings';
@@ -61,6 +63,7 @@ interface MarketPulseProps {
 
 type ViewMode = 'treemap' | 'feed' | 'sources' | 'leaderboard';
 type MomentumState = 'accelerating' | 'stable' | 'fading';
+type SourceFilter = 'all' | 'social' | 'news';
 
 // Filter options
 const timeOptions: TimeWindow[] = ['1h', '6h', '24h', '7d'];
@@ -1172,6 +1175,8 @@ export function MarketPulse({ tile }: MarketPulseProps) {
   const [isClustering, setIsClustering] = useState(false);
   const [showClusters, setShowClusters] = useState(false);
   const [isIngesting, setIsIngesting] = useState(false);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [minScore, setMinScore] = useState<number>(50);
 
   const timeWindow = useSettingsStore((s) => s.timeWindow);
   const setTimeWindow = useSettingsStore((s) => s.setTimeWindow);
@@ -1185,13 +1190,20 @@ export function MarketPulse({ tile }: MarketPulseProps) {
   // Get position symbols for filtering
   const positionSymbols = usePositionSymbols();
 
+  // Build source type query param
+  const sourceTypeParam = sourceFilter === 'social'
+    ? '&source_types=twitter,reddit'
+    : sourceFilter === 'news'
+      ? '&source_types=rss'
+      : '';
+
   // Feed data
   const {
     data: feedData,
     error: feedError,
     isLoading: feedLoading,
     mutate: mutateFeed,
-  } = useSWR(`/api/feed?limit=50&min_score=30`, fetcher, { refreshInterval: 30000 });
+  } = useSWR(`/api/feed?limit=50&min_score=${minScore}${sourceTypeParam}`, fetcher, { refreshInterval: 30000 });
 
   // Heat data
   const assetParam = localFilter !== 'all' ? `&asset_class=${localFilter}` : '';
@@ -1200,7 +1212,7 @@ export function MarketPulse({ tile }: MarketPulseProps) {
     error: heatError,
     isLoading: heatLoading,
     mutate: mutateHeat,
-  } = useSWR<HeatApiResponse>(`/api/heat?hours=24${assetParam}`, fetcher, { refreshInterval: 60000 });
+  } = useSWR<HeatApiResponse>(`/api/heat?hours=24${assetParam}${sourceTypeParam}`, fetcher, { refreshInterval: 60000 });
 
   // Realtime subscription
   const { newItemsCount, clearNewItems } = useRealtimeFeed({
@@ -1382,19 +1394,57 @@ export function MarketPulse({ tile }: MarketPulseProps) {
             <Trophy className="h-3 w-3" />
             Rank
           </Button>
+
+          {/* Source filter divider + toggle */}
+          <div className="border-l border-border h-5 mx-1" />
+          <ToggleGroup
+            type="single"
+            value={sourceFilter}
+            onValueChange={(val) => val && setSourceFilter(val as SourceFilter)}
+            size="sm"
+            className="bg-muted/50 p-0.5 rounded-md"
+          >
+            <ToggleGroupItem value="all" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
+              All
+            </ToggleGroupItem>
+            <ToggleGroupItem value="social" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
+              <MessageCircle className="h-3 w-3 mr-1" />
+              Social
+            </ToggleGroupItem>
+            <ToggleGroupItem value="news" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
+              <Rss className="h-3 w-3 mr-1" />
+              News
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            mutateFeed();
-            mutateHeat();
-          }}
-          disabled={feedLoading || heatLoading}
-          className="h-7 w-7"
-        >
-          <RefreshCw className={cn('h-3.5 w-3.5', (feedLoading || heatLoading) && 'animate-spin')} />
-        </Button>
+        <div className="flex items-center gap-1">
+          {/* Min score selector */}
+          <Select value={String(minScore)} onValueChange={(v) => setMinScore(parseInt(v))}>
+            <SelectTrigger className="h-7 w-[60px] text-[10px] bg-muted/50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30">30+</SelectItem>
+              <SelectItem value="40">40+</SelectItem>
+              <SelectItem value="50">50+</SelectItem>
+              <SelectItem value="60">60+</SelectItem>
+              <SelectItem value="70">70+</SelectItem>
+              <SelectItem value="80">80+</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              mutateFeed();
+              mutateHeat();
+            }}
+            disabled={feedLoading || heatLoading}
+            className="h-7 w-7"
+          >
+            <RefreshCw className={cn('h-3.5 w-3.5', (feedLoading || heatLoading) && 'animate-spin')} />
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
