@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
   const hoursBack = parseInt(searchParams.get('hours') || '24');
   const baselineHours = hoursBack * 2; // Compare against double the window
   const assetClass = searchParams.get('asset_class');
+  const sourceTypes = searchParams.get('source_types')?.split(',').filter(Boolean);
 
   const now = new Date();
   const recentCutoff = new Date(now.getTime() - hoursBack * 60 * 60 * 1000);
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Query recent ticker mentions with source and velocity info
-    const { data: recentItems, error: recentError } = await supabase
+    let recentQuery = supabase
       .from('feed_items')
       .select(`
         id,
@@ -52,7 +53,13 @@ export async function GET(request: NextRequest) {
         tickers:feed_item_tickers(ticker_symbol)
       `)
       .gte('published_at', recentCutoff.toISOString())
-      .order('published_at', { ascending: false }) as any;
+      .order('published_at', { ascending: false });
+
+    if (sourceTypes?.length) {
+      recentQuery = recentQuery.in('source_type', sourceTypes);
+    }
+
+    const { data: recentItems, error: recentError } = await recentQuery as any;
 
     if (recentError) {
       console.error('Heat recent query error:', recentError);
@@ -60,14 +67,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Query baseline period for delta calculation
-    const { data: baselineItems, error: baselineError } = await supabase
+    let baselineQuery = supabase
       .from('feed_items')
       .select(`
         id,
         tickers:feed_item_tickers(ticker_symbol)
       `)
       .gte('published_at', baselineCutoff.toISOString())
-      .lt('published_at', recentCutoff.toISOString()) as any;
+      .lt('published_at', recentCutoff.toISOString());
+
+    if (sourceTypes?.length) {
+      baselineQuery = baselineQuery.in('source_type', sourceTypes);
+    }
+
+    const { data: baselineItems, error: baselineError } = await baselineQuery as any;
 
     if (baselineError) {
       console.error('Heat baseline query error:', baselineError);
