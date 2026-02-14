@@ -28,6 +28,10 @@
     {
       "path": "/api/attribution",
       "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cleanup",
+      "schedule": "0 8 * * *"
     }
   ]
 }
