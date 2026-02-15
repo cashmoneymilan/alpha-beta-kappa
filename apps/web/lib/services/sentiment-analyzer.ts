@@ -5,7 +5,7 @@
  * Returns: positive, negative, or neutral with confidence score
  */
 
-const HF_API_URL = 'https://api-inference.huggingface.co/models/ProsusAI/finbert';
+const HF_API_URL = 'https://router.huggingface.co/hf-inference/models/ProsusAI/finbert';
 
 export interface SentimentResult {
   label: 'positive' | 'negative' | 'neutral';
