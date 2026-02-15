@@ -258,6 +258,8 @@ function TreemapView({
   onTickerClick,
   localFilter,
   setLocalFilter,
+  sourceFilter,
+  setSourceFilter,
 }: {
   tickers: TickerHeat[];
   narratives: NarrativeHeat[];
@@ -266,6 +268,8 @@ function TreemapView({
   onTickerClick: (ticker: string) => void;
   localFilter: AssetFocus;
   setLocalFilter: (filter: AssetFocus) => void;
+  sourceFilter: SourceFilter;
+  setSourceFilter: (filter: SourceFilter) => void;
 }) {
   const [activeView, setActiveView] = useState<'tickers' | 'narratives'>('tickers');
 
@@ -325,6 +329,26 @@ function TreemapView({
                 {filterLabels[opt]}
               </ToggleGroupItem>
             ))}
+          </ToggleGroup>
+          <div className="border-l border-border h-4" />
+          <ToggleGroup
+            type="single"
+            value={sourceFilter}
+            onValueChange={(val) => val && setSourceFilter(val as SourceFilter)}
+            size="sm"
+            className="bg-muted/50 p-0.5 rounded-md"
+          >
+            <ToggleGroupItem value="all" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
+              All
+            </ToggleGroupItem>
+            <ToggleGroupItem value="social" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
+              <MessageCircle className="h-3 w-3 mr-1" />
+              Social
+            </ToggleGroupItem>
+            <ToggleGroupItem value="news" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
+              <Rss className="h-3 w-3 mr-1" />
+              News
+            </ToggleGroupItem>
           </ToggleGroup>
         </div>
       </div>
@@ -463,6 +487,10 @@ function FeedView({
   setShowClusters,
   onTriggerIngestion,
   isIngesting,
+  sourceFilter,
+  setSourceFilter,
+  minScore,
+  setMinScore,
 }: {
   items: FlowItem[];
   isLoading: boolean;
@@ -484,6 +512,10 @@ function FeedView({
   setShowClusters: (show: boolean) => void;
   onTriggerIngestion: () => void;
   isIngesting: boolean;
+  sourceFilter: SourceFilter;
+  setSourceFilter: (filter: SourceFilter) => void;
+  minScore: number;
+  setMinScore: (score: number) => void;
 }) {
   const [selectedItem, setSelectedItem] = useState<FlowItem | null>(null);
   const [overlayOpen, setOverlayOpen] = useState(false);
@@ -518,6 +550,39 @@ function FeedView({
               </SelectContent>
             </Select>
           )}
+          <div className="border-l border-border h-4" />
+          <ToggleGroup
+            type="single"
+            value={sourceFilter}
+            onValueChange={(val) => val && setSourceFilter(val as SourceFilter)}
+            size="sm"
+            className="bg-muted/50 p-0.5 rounded-md"
+          >
+            <ToggleGroupItem value="all" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
+              All
+            </ToggleGroupItem>
+            <ToggleGroupItem value="social" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
+              <MessageCircle className="h-3 w-3 mr-1" />
+              Social
+            </ToggleGroupItem>
+            <ToggleGroupItem value="news" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
+              <Rss className="h-3 w-3 mr-1" />
+              News
+            </ToggleGroupItem>
+          </ToggleGroup>
+          <Select value={String(minScore)} onValueChange={(v) => setMinScore(parseInt(v))}>
+            <SelectTrigger className="h-6 w-[55px] text-[10px] bg-muted/50">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30">30+</SelectItem>
+              <SelectItem value="40">40+</SelectItem>
+              <SelectItem value="50">50+</SelectItem>
+              <SelectItem value="60">60+</SelectItem>
+              <SelectItem value="70">70+</SelectItem>
+              <SelectItem value="80">80+</SelectItem>
+            </SelectContent>
+          </Select>
           <span className="text-[10px] text-muted-foreground">{items.length}</span>
         </div>
         <div className="flex items-center gap-1">
@@ -1395,43 +1460,8 @@ export function MarketPulse({ tile }: MarketPulseProps) {
             Rank
           </Button>
 
-          {/* Source filter divider + toggle */}
-          <div className="border-l border-border h-5 mx-1" />
-          <ToggleGroup
-            type="single"
-            value={sourceFilter}
-            onValueChange={(val) => val && setSourceFilter(val as SourceFilter)}
-            size="sm"
-            className="bg-muted/50 p-0.5 rounded-md"
-          >
-            <ToggleGroupItem value="all" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
-              All
-            </ToggleGroupItem>
-            <ToggleGroupItem value="social" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
-              <MessageCircle className="h-3 w-3 mr-1" />
-              Social
-            </ToggleGroupItem>
-            <ToggleGroupItem value="news" className="h-6 px-2 text-[10px] font-medium data-[state=on]:bg-zinc-700 data-[state=on]:text-white data-[state=on]:shadow-sm">
-              <Rss className="h-3 w-3 mr-1" />
-              News
-            </ToggleGroupItem>
-          </ToggleGroup>
         </div>
         <div className="flex items-center gap-1">
-          {/* Min score selector */}
-          <Select value={String(minScore)} onValueChange={(v) => setMinScore(parseInt(v))}>
-            <SelectTrigger className="h-7 w-[60px] text-[10px] bg-muted/50">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="30">30+</SelectItem>
-              <SelectItem value="40">40+</SelectItem>
-              <SelectItem value="50">50+</SelectItem>
-              <SelectItem value="60">60+</SelectItem>
-              <SelectItem value="70">70+</SelectItem>
-              <SelectItem value="80">80+</SelectItem>
-            </SelectContent>
-          </Select>
           <Button
             variant="ghost"
             size="icon"
@@ -1457,6 +1487,8 @@ export function MarketPulse({ tile }: MarketPulseProps) {
           onTickerClick={handleTickerClick}
           localFilter={localFilter}
           setLocalFilter={setLocalFilter}
+          sourceFilter={sourceFilter}
+          setSourceFilter={setSourceFilter}
         />
       )}
       {viewMode === 'feed' && (
@@ -1481,6 +1513,10 @@ export function MarketPulse({ tile }: MarketPulseProps) {
           setShowClusters={setShowClusters}
           onTriggerIngestion={handleTriggerIngestion}
           isIngesting={isIngesting}
+          sourceFilter={sourceFilter}
+          setSourceFilter={setSourceFilter}
+          minScore={minScore}
+          setMinScore={setMinScore}
         />
       )}
       {viewMode === 'sources' && (
